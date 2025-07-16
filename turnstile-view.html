@@ -1,0 +1,47 @@
+<!-- Container do Turnstile -->
+<div id="turnstile-container" style="margin-bottom: 20px;"></div>
+
+<!-- Script Turnstile API -->
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
+<script>
+  // Callback do Turnstile
+  function onTurnstileSuccess(token) {
+    const oldInput = document.querySelector('input[name="cf-turnstile-response"]');
+    if (oldInput) oldInput.remove();
+
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'cf-turnstile-response';
+    input.value = token;
+
+    const form = document.querySelector("form[name='educacional_form']");
+    if (form) form.appendChild(input);
+  }
+
+  // Renderiza o Turnstile após o carregamento da página
+  window.onload = function () {
+    if (window.turnstile) {
+      turnstile.render('#turnstile-container', {
+        sitekey: '0x4AAAAAABlRmTGD85ZieXO7', // Chave pública do Turnstile
+        callback: onTurnstileSuccess
+      });
+    } else {
+      document.getElementById('turnstile-container').innerText = 'Erro ao carregar Turnstile.';
+    }
+  };
+
+  // Validação antes do envio do formulário
+  document.addEventListener("DOMContentLoaded", function () {
+    const form = document.querySelector("form[name='educacional_form']");
+    if (form) {
+      form.addEventListener("submit", function (e) {
+        const token = document.querySelector('input[name="cf-turnstile-response"]');
+        if (!token || !token.value) {
+          e.preventDefault();
+          alert('Por favor, complete o desafio de segurança.');
+        }
+      });
+    }
+  });
+</script>
