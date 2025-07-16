@@ -1,0 +1,114 @@
+<!-- 
+<!-- 🔘 Botão de autopreenchimento (simulação de dados para testes) -->
+<!-- button type="button" id="btn-autopreencher" style="margin-bottom:15px;padding:10px 20px;background:#0066cc;color:#fff;border:none;border-radius:5px;cursor:pointer;">
+  Autopreencher Dados Simulados
+</button -->
+
+<!-- Turnstile container (ativo) -->
+<div id="turnstile-container" style="margin-bottom: 20px;"></div>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const form = document.querySelector("form[name='educacional_form']");
+  if (!form) return;
+
+  /*
+  // 🔄 [AUTOPREENCHER] – Gera e insere valores aleatórios nos campos do formulário
+  document.getElementById('btn-autopreencher')?.addEventListener('click', () => {
+    const i = Math.floor(Math.random() * 9000) + 1000;
+    const dados = {
+      "form-field-nome": `Usuário Simulado ${i}`,
+      "form-field-idade": `${Math.floor(Math.random() * 10) + 16}`,
+      "form-field-telefone": `(62) 9${Math.floor(90000000 + Math.random() * 9999999)}`,
+      "form-field-instagram": `@simulado_${i}`,
+      "form-field-email": `simulado${i}@teste.com`,
+      "form-field-cidade": "Goiânia",
+      "form-field-interesse": "Tenho grande interesse em aprender mecânica",
+      "form-field-declaracao-0": true,
+      "form-field-trabalhou_mecanica": "Sim, já trabalhei na área",
+      "form-field-contato_mecanica": "Sim, já fiz um curso na área",
+      "form-field-disponibilidade": "Sim, tenho"
+    };
+
+    for (const id in dados) {
+      const el = document.getElementById(id);
+      if (el) {
+        if (el.type === "checkbox") el.checked = dados[id];
+        else el.value = dados[id];
+      }
+    }
+
+    alert("✅ Dados simulados preenchidos com sucesso.");
+  });
+  */
+
+  // 🧠 Mapeamento correto dos campos
+  const mapearCampos = (formData) => {
+    const campos = {};
+    for (const [chave, valor] of formData.entries()) {
+      const match = chave.match(/^form_fields\[(.*?)\]$/);
+      if (match) {
+        campos[match[1]] = valor;
+      } else if (chave === 'cf-turnstile-response') {
+        campos['turnstile_token'] = valor;
+      }
+    }
+    return campos;
+  };
+
+// 📤 Submissão do formulário
+form.addEventListener("submit", async function (e) {
+  e.preventDefault();
+
+  const formData = new FormData(form);
+  const campos = mapearCampos(formData);
+
+  if (!campos.turnstile_token) {
+    alert("⚠️ Verificação de segurança obrigatória.");
+    return;
+  }
+
+  try {
+    const res = await fetch('/wp-json/api/form', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ form_fields: campos })
+    });
+
+    const r = await res.json();
+    alert(r?.mensagem || "❌ Erro desconhecido ao enviar.");
+
+    if (r?.status === "sucesso") {
+      // Redirecionamento forçado para limpar o formulário
+      window.location.href = window.location.href.split('#')[0];
+    }
+  } catch (err) {
+    console.error("❌ Erro técnico:", err);
+    alert("❌ Erro técnico ao enviar. Tente novamente.");
+  }
+});
+
+
+  // 🔐 Render Turnstile
+  window.onload = function () {
+    if (window.turnstile) {
+      turnstile.render('#turnstile-container', {
+        sitekey: '0x4AAAAAABlRmTGD85ZieXO7',
+        callback: function (token) {
+          let input = document.querySelector('input[name="cf-turnstile-response"]');
+          if (!input) {
+            input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'cf-turnstile-response';
+            form.appendChild(input);
+          }
+          input.value = token;
+        }
+      });
+    } else {
+      document.getElementById('turnstile-container').innerText = 'Erro ao carregar verificação.';
+    }
+  };
+});
+</script>
